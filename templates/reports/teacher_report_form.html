@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Submit Report - School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1 fw-bold">Submit a New Report</h2>
+        <p class="text-muted mb-0">Record academic, behavioral, or attendance incidents for your students.</p>
+    </div>
+    <a href="{% url 'students:teacher_report_list' %}" class="btn btn-light shadow-sm rounded-pill px-4">
+        <i class="bi bi-arrow-left me-2"></i>Back to My Reports
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label for="{{ form.group.id_for_label }}" class="form-label fw-bold">Select Group *</label>
+                            {{ form.group }}
+                            {% if form.group.errors %}
+                                <div class="text-danger small mt-1">{{ form.group.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.student.id_for_label }}" class="form-label fw-bold">Select Student *</label>
+                            <select name="{{ form.student.html_name }}" id="{{ form.student.id_for_label }}" class="form-select" disabled required>
+                                <option value="">--- Select a Group first ---</option>
+                            </select>
+                            {% if form.student.errors %}
+                                <div class="text-danger small mt-1">{{ form.student.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label for="{{ form.report_type.id_for_label }}" class="form-label fw-bold">Report Type *</label>
+                            {{ form.report_type }}
+                            {% if form.report_type.errors %}
+                                <div class="text-danger small mt-1">{{ form.report_type.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.priority.id_for_label }}" class="form-label fw-bold">Priority *</label>
+                            {{ form.priority }}
+                            {% if form.priority.errors %}
+                                <div class="text-danger small mt-1">{{ form.priority.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.title.id_for_label }}" class="form-label fw-bold">Report Title *</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <div class="text-danger small mt-1">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="{{ form.description.id_for_label }}" class="form-label fw-bold">Detailed Description *</label>
+                        {{ form.description }}
+                        <div class="form-text">Provide a clear, objective summary of the incident or feedback.</div>
+                        {% if form.description.errors %}
+                            <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4 form-check bg-light p-3 rounded border">
+                        <input type="checkbox" name="{{ form.is_flagged.html_name }}" id="{{ form.is_flagged.id_for_label }}" class="form-check-input ms-1 me-2" {% if form.is_flagged.value %}checked{% endif %}>
+                        <label class="form-check-label fw-bold text-danger" for="{{ form.is_flagged.id_for_label }}">
+                            <i class="bi bi-flag-fill me-1"></i>Flag for Immediate Admin Attention
+                        </label>
+                        <div class="form-text ms-4 mt-1">Check this box only if the situation requires urgent administrative review or intervention.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-primary rounded-pill px-5 py-2 shadow-sm fw-bold">
+                            <i class="bi bi-send me-2"></i>Submit Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const groupSelect = document.getElementById("{{ form.group.id_for_label }}");
+    const studentSelect = document.getElementById("{{ form.student.id_for_label }}");
+    const currentStudentVal = "{{ form.student.value|default:'' }}";
+
+    function fetchStudents(groupId) {
+        if (!groupId) {
+            studentSelect.innerHTML = '<option value="">--- Select a Group first ---</option>';
+            studentSelect.disabled = true;
+            return;
+        }
+
+        // Show loading state
+        studentSelect.innerHTML = '<option value="">Loading students...</option>';
+        studentSelect.disabled = true;
+
+        fetch(`/students/api/group/${groupId}/students/`)
+            .then(response => response.json())
+            .then(data => {
+                studentSelect.innerHTML = '<option value="">--- Select a Student ---</option>';
+                if (data.students && data.students.length > 0) {
+                    data.students.forEach(student => {
+                        const isSelected = (currentStudentVal == student.id) ? 'selected' : '';
+                        studentSelect.innerHTML += `<option value="${student.id}" ${isSelected}>${student.name}</option>`;
+                    });
+                    studentSelect.disabled = false;
+                } else {
+                    studentSelect.innerHTML = '<option value="">No students in this group</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching students:', error);
+                studentSelect.innerHTML = '<option value="">Error loading students</option>';
+            });
+    }
+
+    // Initialize on load if a group is already selected (e.g., failed form submission)
+    if (groupSelect.value) {
+        fetchStudents(groupSelect.value);
+    }
+
+    // Event listener for group change
+    groupSelect.addEventListener("change", function() {
+        fetchStudents(this.value);
+    });
+});
+</script>
+{% endblock %}

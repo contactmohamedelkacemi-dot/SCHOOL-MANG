@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+
+{% block title %}Create User - School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0 fw-bold">Create New User</h2>
+    <a href="{% url 'dashboard:admin_dashboard' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="row fade-in">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-transparent border-bottom pt-4 pb-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-person-plus text-success me-2"></i>User Details</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" id="createUserForm">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors.0 }}
+                    </div>
+                    {% endif %}
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold">Select Role</label>
+                            {{ form.role }}
+                        </div>
+                    </div>
+                    
+                    <h6 class="text-muted fw-bold mb-3 border-bottom pb-2">Basic Information</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                            {{ form.full_name }}
+                            {% if form.full_name.errors %}<div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email <span class="text-danger">*</span></label>
+                            {{ form.email }}
+                            {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            {{ form.username }}
+                            <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>Leave blank to auto-generate based on name.</div>
+                            {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Password</label>
+                            <div class="input-group">
+                                {{ form.password }}
+                                <button class="btn btn-outline-secondary" type="button" id="btnGenPassword" title="Generate Random Password">
+                                    <i class="bi bi-dice-5"></i>
+                                </button>
+                            </div>
+                            <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>Leave blank to generate a secure random password.</div>
+                            {% if form.password.errors %}<div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Teacher Fields -->
+                    <div id="teacherFieldsSection" class="border p-3 rounded bg-light mb-4">
+                        <h6 class="text-primary fw-bold mb-3"><i class="bi bi-briefcase-fill me-2"></i>Teacher Information</h6>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <label class="form-label">Phone Number</label>
+                                {{ form.phone }}
+                                {% if form.phone.errors %}<div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Student Fields -->
+                    <div id="studentFieldsSection" class="border p-3 rounded bg-light mb-4" style="display: none;">
+                        <h6 class="text-info fw-bold mb-3"><i class="bi bi-mortarboard-fill me-2"></i>Student Information</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Class Assigned <span class="text-danger">*</span></label>
+                                {{ form.class_assigned }}
+                                {% if form.class_assigned.errors %}<div class="text-danger small mt-1">{{ form.class_assigned.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Group Assigned</label>
+                                {{ form.group_assigned }}
+                                {% if form.group_assigned.errors %}<div class="text-danger small mt-1">{{ form.group_assigned.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-success btn-lg shadow-sm px-4">
+                            <i class="bi bi-check-circle-fill me-1"></i> Create User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal (Triggered dynamically if created_user exists) -->
+{% if created_user %}
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="successModalLabel"><i class="bi bi-check-circle-fill me-2"></i>User Created Successfully</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <p class="mb-3 text-muted">The new {{ created_user.role }} account has been provisioned. Please securely share these credentials with <strong>{{ created_user.full_name }}</strong>. They will be forced to complete their profile upon first login.</p>
+                
+                <div class="alert alert-warning py-2 small mb-4">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>Warning:</strong> This password will not be shown again!
+                </div>
+                
+                <div class="bg-light p-3 rounded border text-start position-relative" id="passwordModalBody" tabindex="0" aria-label="Password Details Area">
+                    <p class="mb-2"><strong>Username:</strong> <span id="copyUsername" class="text-primary fs-5">{{ created_user.username }}</span></p>
+                    <div class="d-flex align-items-center mb-0">
+                        <strong class="me-2">Password:</strong> 
+                        <span id="copyPassword" class="text-danger fs-5 fw-bold font-monospace" aria-live="polite">••••••••••••</span>
+                        <button class="btn btn-sm btn-link text-secondary text-decoration-none ms-2 p-0" onclick="togglePasswordVisibility()" aria-label="Show or Hide Password" title="Show/Hide Password">
+                            <i class="bi bi-eye-slash fs-5" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                    
+                    <button class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2" id="copyBtn" onclick="copyCredentials()" aria-label="Copy Credentials" title="Copy to clipboard">
+                        <i class="bi bi-clipboard me-1"></i> Copy
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 d-flex justify-content-between align-items-center">
+                <span class="text-muted small" id="autoCloseText" aria-live="polite"></span>
+                <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">Done</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const roleSelector = document.getElementById('roleSelector');
+    const teacherFields = document.getElementById('teacherFieldsSection');
+    const studentFields = document.getElementById('studentFieldsSection');
+    
+    function toggleFields() {
+        if (roleSelector.value === 'formateur') {
+            teacherFields.style.display = 'block';
+            studentFields.style.display = 'none';
+        } else if (roleSelector.value === 'stagiaire') {
+            teacherFields.style.display = 'none';
+            studentFields.style.display = 'block';
+        }
+    }
+    
+    // Initial toggle
+    toggleFields();
+    
+    // On change event
+    roleSelector.addEventListener('change', toggleFields);
+    
+    // Generate Random Password
+    const btnGenPassword = document.getElementById('btnGenPassword');
+    const passwordInput = document.getElementById('id_password');
+    
+    btnGenPassword.addEventListener('click', function() {
+        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+        let pass = "";
+        for (let i = 0; i < 12; i++) {
+            pass += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        passwordInput.value = pass;
+    });
+    
+    // Show modal if created
+    {% if created_user %}
+        // Securely store password in JS memory only, never in DOM
+        const securePasswordMemory = "{{ created_user.password|escapejs }}";
+        
+        var successModal = new bootstrap.Modal(document.getElementById('successModal'));
+        successModal.show();
+        
+        // Auto-close countdown with pause on hover/focus
+        let secondsLeft = 30;
+        let isPaused = false;
+        const autoCloseText = document.getElementById('autoCloseText');
+        const modalBody = document.getElementById('passwordModalBody');
+        
+        autoCloseText.innerText = `Auto-closing in ${secondsLeft}s...`;
+        
+        // Pause timer events
+        modalBody.addEventListener('mouseenter', () => isPaused = true);
+        modalBody.addEventListener('mouseleave', () => isPaused = false);
+        modalBody.addEventListener('focusin', () => isPaused = true);
+        modalBody.addEventListener('focusout', () => isPaused = false);
+        
+        const countdownTimer = setInterval(() => {
+            if (!isPaused) {
+                secondsLeft--;
+                if (secondsLeft <= 0) {
+                    clearInterval(countdownTimer);
+                    successModal.hide();
+                } else {
+                    autoCloseText.innerText = `Auto-closing in ${secondsLeft}s...`;
+                }
+            } else {
+                autoCloseText.innerText = `Timer paused (User active)`;
+            }
+        }, 1000);
+        
+        document.getElementById('successModal').addEventListener('hidden.bs.modal', function () {
+            clearInterval(countdownTimer);
+        });
+
+        // Expose functions only within this scope if possible, but they are called via inline handlers
+        // so we assign them to window with secure memory access
+        window.togglePasswordVisibility = function() {
+            const span = document.getElementById('copyPassword');
+            const icon = document.getElementById('toggleIcon');
+            if (span.innerText === '••••••••••••') {
+                span.innerText = securePasswordMemory;
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            } else {
+                span.innerText = '••••••••••••';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            }
+        };
+
+        window.copyCredentials = function() {
+            const username = document.getElementById('copyUsername').innerText;
+            const text = `Login: http://127.0.0.1:8000/\nUsername: ${username}\nPassword: ${securePasswordMemory}`;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                const btn = document.getElementById('copyBtn');
+                btn.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> <span class="text-success fw-bold">Copied!</span>';
+                btn.classList.replace('btn-outline-secondary', 'border-success');
+                btn.classList.add('bg-success', 'bg-opacity-10');
+                
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="bi bi-clipboard me-1"></i> Copy';
+                    btn.classList.replace('border-success', 'btn-outline-secondary');
+                    btn.classList.remove('bg-success', 'bg-opacity-10');
+                }, 2000);
+            });
+        };
+        
+        // Keyboard accessibility for the copy button
+        document.getElementById('copyBtn').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                window.copyCredentials();
+            }
+        });
+    {% endif %}
+});
+</script>
+{% endblock %}

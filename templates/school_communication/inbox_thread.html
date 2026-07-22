@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'school_communication:inbox_home' %}" class="btn btn-outline-secondary rounded-pill btn-sm me-2">
+            <i class="bi bi-arrow-left me-1"></i>Back to Inbox
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm" style="border-radius: 1.25rem;">
+    <div class="card-header bg-transparent border-bottom py-3">
+        <h5 class="fw-bold mb-0">{{ thread.subject }}</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="inbox-detail-messages p-4" style="max-height: 500px; overflow-y: auto;">
+            {% for m in messages_list %}
+            <div class="inbox-thread-message {% if m.sender == request.user %}mine{% else %}theirs{% endif %} mb-3">
+                <div class="d-flex align-items-start mb-1">
+                    <strong class="me-2">{{ m.sender.get_full_name|default:m.sender.username }}</strong>
+                    <span class="text-muted small">{{ m.created_at|date:"M d, Y H:i" }}</span>
+                    {% if m.priority == 'high' %}
+                    <span class="badge bg-danger ms-2">High Priority</span>
+                    {% endif %}
+                </div>
+                <div class="inbox-msg-body">{{ m.body }}</div>
+                {% if m.attachment %}
+                <div class="mt-2">
+                    <a href="{{ m.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill">
+                        <i class="bi bi-paperclip me-1"></i>{{ m.attachment_name|default:"Attachment" }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card-footer bg-transparent border-top p-3">
+        <form method="post" action="{% url 'school_communication:inbox_reply' thread.pk %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <textarea class="form-control mb-2" name="body" rows="3" placeholder="Write your reply..." required></textarea>
+            <div class="d-flex justify-content-between">
+                <div class="d-flex gap-2">
+                    <input type="file" name="attachment" class="form-control form-control-sm" style="max-width: 250px;">
+                    <select name="priority" class="form-select form-select-sm" style="width: auto;">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">
+                    <i class="bi bi-reply me-1"></i>Reply
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

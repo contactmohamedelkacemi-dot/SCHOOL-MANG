@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Complete Your Profile - School Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center fade-in mt-5">
+    <div class="col-lg-8">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold text-primary">Welcome Aboard! 🎉</h2>
+            <p class="text-muted fs-5">Before you can access your dashboard, we need a few more details to set up your profile completely.</p>
+        </div>
+
+        <div class="card shadow border-0">
+            <div class="card-header bg-white border-bottom pt-4 pb-3 text-center">
+                <h5 class="mb-0 fw-bold">
+                    {% if role == 'formateur' %}
+                        <i class="bi bi-briefcase-fill text-primary me-2"></i> Teacher Profile Setup
+                    {% elif role == 'stagiaire' %}
+                        <i class="bi bi-mortarboard-fill text-info me-2"></i> Student Profile Setup
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body p-4 p-md-5">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors.0 }}
+                    </div>
+                    {% endif %}
+
+                    <div class="row g-4">
+                        {% for field in form %}
+                        <div class="col-md-{% if field.name == 'address' %}12{% else %}6{% endif %}">
+                            <label class="form-label fw-bold">{{ field.label }} <span class="text-danger">*</span></label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text text-muted small mt-1">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="text-danger small mt-1 fw-bold">{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-grid mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                            <i class="bi bi-check2-circle me-2"></i> Save Profile & Continue
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

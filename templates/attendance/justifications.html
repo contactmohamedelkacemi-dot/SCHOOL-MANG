@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>Absence Justifications</h2>
+        <h6 class="text-muted">Manage submitted documents and reasons for absences.</h6>
+    </div>
+    <a href="{% url 'attendance:justification_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Add Justification</a>
+</div>
+
+<div class="row mb-4 fade-in">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white border-0 shadow-sm">
+            <div class="card-body">
+                <h6>Total Requests</h6>
+                <h3>{{ stats.total }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark border-0 shadow-sm">
+            <div class="card-body">
+                <h6>Pending</h6>
+                <h3>{{ stats.pending }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white border-0 shadow-sm">
+            <div class="card-body">
+                <h6>Approved</h6>
+                <h3>{{ stats.approved }} <small class="fs-6 opacity-75">({{ stats.approved_rate }}%)</small></h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white border-0 shadow-sm">
+            <div class="card-body">
+                <h6>Rejected</h6>
+                <h3>{{ stats.rejected }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 fade-in">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Student</th>
+                        <th>Date</th>
+                        <th>Sessions</th>
+                        <th>Reason</th>
+                        <th>Evidence</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for justif in justifications %}
+                    <tr>
+                        <td>
+                            {% if justif.student.profile_image %}
+                            <img src="{{ justif.student.profile_image.url }}" class="rounded-circle me-2" width="30" height="30" style="object-fit: cover;">
+                            {% endif %}
+                            <strong>{{ justif.student.full_name }}</strong>
+                        </td>
+                        <td>{{ justif.date }}</td>
+                        <td>
+                            {% for session in justif.session_links.all %}
+                                <span class="badge bg-secondary">S{{ session.session_number }}</span>
+                            {% endfor %}
+                        </td>
+                        <td><small>{{ justif.reason|truncatechars:50 }}</small></td>
+                        <td>
+                            {% if justif.image %}
+                                <a href="javascript:void(0)" onclick="showImagePreview('{{ justif.image.url }}')">
+                                    <img src="{{ justif.image.url }}" alt="Evidence" class="img-thumbnail shadow-sm" style="max-height: 40px; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                                </a>
+                            {% else %}
+                                <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if justif.status == 'Approved' %}
+                                <span class="badge text-success border border-success">Approved</span>
+                            {% elif justif.status == 'Rejected' %}
+                                <span class="badge text-danger border border-danger">Rejected</span>
+                            {% else %}
+                                <span class="badge text-warning border border-warning">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if justif.status == 'Pending' %}
+                                <div class="btn-group">
+                                    <form method="post" action="{% url 'attendance:justification_approve' justif.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Approve"><i class="bi bi-check-lg"></i></button>
+                                    </form>
+                                    <form method="post" action="{% url 'attendance:justification_reject' justif.id %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Reject"><i class="bi bi-x-lg"></i></button>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 mb-3 d-block"></i>
+                            <p class="mb-0">No justifications found.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Image Preview Modal -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 bg-transparent">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white shadow-none ms-auto" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%);"></button>
+            </div>
+            <div class="modal-body text-center p-0">
+                <img id="previewImage" src="" class="img-fluid rounded shadow-lg" alt="Justification Preview">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showImagePreview(url) {
+        document.getElementById('previewImage').src = url;
+        var myModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+        myModal.show();
+    }
+</script>
+{% endblock %}

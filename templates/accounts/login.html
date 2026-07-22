@@ -1,0 +1,61 @@
+{% extends 'base_auth.html' %}
+{% load static %}
+
+{% block title %}Login - School Management{% endblock %}
+
+{% block content %}
+<div class="col-md-5 col-lg-4">
+    <div class="card shadow-lg border-0 rounded-4 fade-in">
+        <div class="card-body p-5">
+            <div class="text-center mb-4">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-shield-lock-fill fs-2"></i>
+                </div>
+                <h3 class="fw-bold text-dark">Welcome Back</h3>
+                <p class="text-muted">Please log in to your account</p>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show fade-in shadow-sm border-0 border-start border-4 {% if message.tags == 'error' %}border-danger{% else %}border-{{ message.tags }}{% endif %}" role="alert">
+                        <div class="d-flex align-items-center">
+                            {% if message.tags == 'error' %}
+                                <i class="bi bi-exclamation-triangle-fill text-danger me-2 fs-5"></i>
+                            {% elif message.tags == 'success' %}
+                                <i class="bi bi-check-circle-fill text-success me-2 fs-5"></i>
+                            {% endif %}
+                            <strong class="small">{{ message }}</strong>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" action="{% url 'accounts:login' %}">
+                {% csrf_token %}
+                
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="username" name="username" placeholder="name@example.com" required autofocus>
+                    <label for="username"><i class="bi bi-person me-2 text-muted"></i>Email or Username</label>
+                </div>
+                
+                <div class="form-floating mb-3">
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                    <label for="password"><i class="bi bi-key me-2 text-muted"></i>Password</label>
+                </div>
+
+                <div class="d-flex justify-content-end mb-4">
+                    <a href="{% url 'accounts:password_reset' %}" class="text-decoration-none small text-primary fw-medium">Forgot your password?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm rounded-pill transition-all">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Log In
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="text-center mt-4 text-muted small">
+        &copy; 2026 School Management System
+    </div>
+</div>
+{% endblock %}

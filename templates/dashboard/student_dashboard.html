@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Dashboard - School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1 fw-bold">Student Dashboard</h2>
+        <p class="text-muted mb-0">Welcome back, {{ student.full_name }}</p>
+    </div>
+    <div>
+        <a href="{% url 'dashboard:student_profile' %}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="bi bi-person-circle me-2"></i>View My Profile
+        </a>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger shadow-sm border-0 fade-in">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+</div>
+{% else %}
+<!-- REAL-TIME INTELLIGENCE BAR -->
+<div class="row g-4 mb-4 fade-in">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 rounded-4 h-100 position-relative overflow-hidden">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="display-5 me-3
+                    {% if today_status == 'Present' %}text-success
+                    {% elif today_status == 'Absent' %}text-danger
+                    {% elif today_status == 'Late' %}text-warning
+                    {% else %}text-secondary{% endif %}">
+                    {% if today_status == 'Present' %}<i class="bi bi-person-check-fill"></i>
+                    {% elif today_status == 'Absent' %}<i class="bi bi-person-x-fill"></i>
+                    {% elif today_status == 'Late' %}<i class="bi bi-clock-fill"></i>
+                    {% else %}<i class="bi bi-calendar-minus"></i>{% endif %}
+                </div>
+                <div>
+                    <h6 class="text-uppercase text-muted fw-bold mb-1" style="letter-spacing: 1px; font-size: 0.75rem;">Today's Status</h6>
+                    <h4 class="mb-0 fw-bold">{{ today_status }}</h4>
+                </div>
+            </div>
+            {% if today_status == 'Absent' %}
+                <div class="position-absolute top-0 start-0 w-100 h-100 bg-danger opacity-10" style="pointer-events: none;"></div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 rounded-4 h-100 bg-gradient text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="display-5 me-3 opacity-75"><i class="bi bi-journal-bookmark-fill"></i></div>
+                <div>
+                    <h6 class="text-uppercase fw-bold mb-1 opacity-75" style="letter-spacing: 1px; font-size: 0.75rem;">Next Session</h6>
+                    {% if next_session %}
+                        <h5 class="mb-0 fw-bold text-truncate" title="{{ next_session.module.name }}">{{ next_session.module.name|truncatechars:20 }}</h5>
+                        <small class="opacity-75"><i class="bi bi-clock me-1"></i>{{ next_session.get_session_number_display }} | <i class="bi bi-person-video3 ms-1 me-1"></i>{{ next_session.teacher.full_name|truncatechars:10 }}</small>
+                    {% else %}
+                        <h5 class="mb-0 fw-bold">No upcoming classes</h5>
+                        <small class="opacity-75">Enjoy your free time!</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 rounded-4 h-100">
+            <div class="card-body p-4 d-flex align-items-center">
+                <div class="display-5 me-3
+                    {% if risk_level == 'Critical' %}text-danger
+                    {% elif risk_level == 'At Risk' %}text-warning
+                    {% else %}text-success{% endif %}">
+                    {% if risk_level == 'Critical' %}<i class="bi bi-exclamation-octagon-fill"></i>
+                    {% elif risk_level == 'At Risk' %}<i class="bi bi-exclamation-triangle-fill"></i>
+                    {% else %}<i class="bi bi-shield-check"></i>{% endif %}
+                </div>
+                <div>
+                    <h6 class="text-uppercase text-muted fw-bold mb-1" style="letter-spacing: 1px; font-size: 0.75rem;">Absence Severity</h6>
+                    <h4 class="mb-0 fw-bold">{{ risk_level }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TOP KPI CARDS -->
+<div class="row g-4 mb-4 fade-in">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white shadow-sm border-0 h-100 rounded-4" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-2 opacity-75">Total Absences</h6>
+                        <h2 class="mb-0 fw-bold">{{ total_absences }}</h2>
+                    </div>
+                    <div class="display-4 opacity-50"><i class="bi bi-calendar-x"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white shadow-sm border-0 h-100 rounded-4" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-2 opacity-75">Justified</h6>
+                        <h2 class="mb-0 fw-bold">{{ justified_absences }}</h2>
+                    </div>
+                    <div class="display-4 opacity-50"><i class="bi bi-check-circle"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark shadow-sm border-0 h-100 rounded-4" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-2 opacity-75">Pending</h6>
+                        <h2 class="mb-0 fw-bold">{{ pending_justifications }}</h2>
+                    </div>
+                    <div class="display-4 opacity-50"><i class="bi bi-clock-history"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white shadow-sm border-0 h-100 rounded-4" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-2 opacity-75">Attendance Rate</h6>
+                        <h2 class="mb-0 fw-bold">{{ attendance_rate }}%</h2>
+                    </div>
+                    <div class="display-4 opacity-50"><i class="bi bi-graph-up"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- LEFT: ABSENCES PRIORITY (60%) -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 h-100 rounded-4 fade-in">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h5 class="fw-bold mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Action Required: My Absences</h5>
+            </div>
+            <div class="card-body">
+                {% if absence_list %}
+                    <div class="list-group list-group-flush">
+                    {% for abs in absence_list %}
+                        <div class="list-group-item px-0 py-3 border-bottom border-light">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                <div>
+                                    <h6 class="fw-bold mb-1"><i class="bi bi-calendar-event text-primary me-2"></i>{{ abs.date }}</h6>
+                                    <div class="mb-2">
+                                        <span class="text-muted small me-2">Missed Sessions:</span>
+                                        {% for s in abs.sessions %}
+                                            <span class="badge bg-secondary rounded-pill me-1">S{{ s }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    <div>
+                                        {% if abs.status == 'Approved' %}
+                                            <span class="badge text-success border border-success px-2 py-1"><i class="bi bi-check-circle me-1"></i>Justifié</span>
+                                        {% elif abs.status == 'Pending' %}
+                                            <span class="badge text-warning border border-warning px-2 py-1"><i class="bi bi-clock me-1"></i>En attente</span>
+                                        {% elif abs.status == 'Rejected' %}
+                                            <span class="badge text-danger border border-danger px-2 py-1"><i class="bi bi-x-circle me-1"></i>Refusé</span>
+                                        {% else %}
+                                            <span class="badge text-danger border border-danger px-2 py-1"><i class="bi bi-exclamation-circle me-1"></i>Non justifié</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if abs.justification %}
+                                        <div class="mt-3 bg-light p-3 rounded-3 d-flex align-items-start gap-3">
+                                            {% if abs.justification.image %}
+                                                <a href="{{ abs.justification.image.url }}" target="_blank">
+                                                    <img src="{{ abs.justification.image.url }}" class="rounded shadow-sm" style="width: 60px; height: 60px; object-fit: cover; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                                </a>
+                                            {% else %}
+                                                <div class="bg-secondary bg-opacity-25 rounded d-flex justify-content-center align-items-center" style="width: 60px; height: 60px;">
+                                                    <i class="bi bi-file-earmark-text text-secondary fs-4"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div class="flex-grow-1">
+                                                <p class="mb-1 small text-muted"><i class="bi bi-quote"></i> {{ abs.justification.reason|truncatechars:80 }}</p>
+                                                {% if abs.status == 'Rejected' %}
+                                                    <small class="text-danger fw-bold"><i class="bi bi-info-circle me-1"></i>Reason deemed insufficient by administration.</small>
+                                                {% elif abs.status == 'Approved' %}
+                                                    <small class="text-success fw-bold"><i class="bi bi-shield-check me-1"></i>Admin validated.</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="mt-2 mt-md-0">
+                                    {% if abs.status == 'Non justifié' or abs.status == 'Rejected' %}
+                                        <a href="{% url 'attendance:student_submit_justification' %}?date={{ abs.date|date:'Y-m-d' }}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" style="transition: all 0.2s;" onmouseover="this.classList.add('px-4')" onmouseout="this.classList.remove('px-4')">
+                                            Justify this absence <i class="bi bi-arrow-right ms-1"></i>
+                                        </a>
+                                    {% else %}
+                                        <button class="btn btn-light btn-sm rounded-pill px-3" disabled>
+                                            <i class="bi bi-lock-fill me-1"></i> Locked
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="display-1 text-success opacity-25 mb-3"><i class="bi bi-emoji-smile"></i></div>
+                        <h5 class="text-muted">You have no absences to justify!</h5>
+                        <p class="text-muted small">Keep up the great attendance.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- RIGHT: TIMETABLE & CHART (40%) -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 mb-4 rounded-4 fade-in">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h5 class="fw-bold mb-0"><i class="bi bi-calendar3 me-2 text-primary"></i>My Weekly Schedule</h5>
+            </div>
+            <div class="card-body p-0 mt-3">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm text-center mb-0" style="table-layout: fixed; font-size: 0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Day</th>
+                                <th>S1</th>
+                                <th>S2</th>
+                                <th>S3</th>
+                                <th>S4</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day_data in schedule_data %}
+                                <tr>
+                                    <td class="align-middle fw-bold bg-light">{{ day_data.day|slice:":3" }}</td>
+                                    {% for session in day_data.sessions %}
+                                        <td class="align-middle p-2" style="height: 60px;">
+                                            {% if session.schedule %}
+                                                <div class="fw-bold text-primary text-truncate" title="{{ session.schedule.module.name }}">{{ session.schedule.module.name }}</div>
+                                                <div class="text-muted" style="font-size: 0.7rem;" title="{{ session.schedule.teacher.full_name }}">{{ session.schedule.teacher.full_name|truncatechars:15 }}</div>
+                                            {% else %}
+                                                <span class="text-muted opacity-25">—</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="5" class="text-center py-4 text-muted">No schedule available.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm border-0 rounded-4 fade-in">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h5 class="fw-bold mb-0"><i class="bi bi-pie-chart me-2 text-info"></i>Attendance Overview</h5>
+            </div>
+            <div class="card-body d-flex justify-content-center align-items-center" style="height: 250px;">
+                {% if pie_data != '[0, 0, 0]' %}
+                    <canvas id="attendanceChart" width="200" height="200"></canvas>
+                {% else %}
+                    <div class="text-center text-muted">
+                        <i class="bi bi-graph-up text-light display-1 d-block mb-3"></i>
+                        <p>No attendance data yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if pie_data != '[0, 0, 0]' %}
+<!-- Load Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var ctx = document.getElementById('attendanceChart').getContext('2d');
+        var pieData = {{ pie_data|safe }};
+        var attendanceChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Present', 'Absent', 'Late'],
+                datasets: [{
+                    data: pieData,
+                    backgroundColor: ['#198754', '#dc3545', '#ffc107'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 20, usePointStyle: true }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

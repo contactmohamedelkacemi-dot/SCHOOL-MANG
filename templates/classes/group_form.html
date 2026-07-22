@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h4 class="mb-0">{% if is_update %}Edit Group{% else %}Add New Group{% endif %}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors.0 }}
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Group Name</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Class</label>
+                            {{ form.class_assigned }}
+                            {% if form.class_assigned.errors %}<div class="text-danger small">{{ form.class_assigned.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Assign Teachers</label>
+                        {{ form.teachers }}
+                        <div class="form-text">Hold Ctrl (Windows) or Command (Mac) to select multiple.</div>
+                        {% if form.teachers.errors %}<div class="text-danger small">{{ form.teachers.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Assign Students</label>
+                        {{ form.students }}
+                        <div class="form-text">Hold Ctrl (Windows) or Command (Mac) to select multiple.</div>
+                        {% if form.students.errors %}<div class="text-danger small">{{ form.students.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'classes:group_list' %}" class="btn btn-light">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Group</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- jQuery and Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#id_teachers').select2({
+        theme: 'bootstrap-5',
+        placeholder: "Select Teachers"
+    });
+    $('#id_students').select2({
+        theme: 'bootstrap-5',
+        placeholder: "Select Students"
+    });
+});
+</script>
+{% endblock %}

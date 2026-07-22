@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Admin Dashboard</h2>
+    <div>
+        <a href="{% url 'dashboard:admin_create_user' %}" class="btn btn-success me-2">
+            <i class="bi bi-person-plus-fill me-1"></i> Create User
+        </a>
+        <a href="{% url 'attendance:attendance_report' %}" class="btn btn-primary me-2">
+            <i class="bi bi-file-earmark-bar-graph me-1"></i> Attendance Reports
+        </a>
+        <a href="{% url 'students:admin_report_list' %}" class="btn btn-warning text-dark position-relative shadow-sm">
+            <i class="bi bi-flag-fill me-1"></i> Review Reports
+            {% if pending_reports > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm border border-white">
+                    {{ pending_reports }}
+                </span>
+            {% endif %}
+        </a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4 fade-in">
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="card card-hover text-white bg-primary border-0 h-100" style="background-color: var(--bs-primary) !important;">
+            <div class="card-body py-4">
+                <h6 class="card-title text-uppercase text-white-50 fw-bold tracking-wider">Total Students</h6>
+                <h2 class="card-text mb-0 display-5 fw-bold">{{ total_students|default:"0" }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="card card-hover text-white bg-success border-0 h-100" style="background-color: var(--bs-success) !important;">
+            <div class="card-body py-4">
+                <h6 class="card-title text-uppercase text-white-50 fw-bold tracking-wider">Total Teachers</h6>
+                <h2 class="card-text mb-0 display-5 fw-bold">{{ total_teachers|default:"0" }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="card card-hover text-white bg-info border-0 h-100" style="background-color: var(--bs-info) !important;">
+            <div class="card-body py-4">
+                <h6 class="card-title text-uppercase text-white-50 fw-bold tracking-wider">Total Classes</h6>
+                <h2 class="card-text mb-0 display-5 fw-bold">{{ total_classes|default:"0" }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-hover text-white bg-secondary border-0 h-100">
+            <div class="card-body py-4">
+                <h6 class="card-title text-uppercase text-white-50 fw-bold tracking-wider">Total Sessions Recorded</h6>
+                <h2 class="card-text mb-0 display-5 fw-bold">{{ total_attendance|default:"0" }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Stats & Pie Charts -->
+<div class="row mb-4 fade-in" style="animation-delay: 0.1s; animation-fill-mode: both;">
+    <div class="col-md-4 mb-4 mb-md-0">
+        <div class="card card-hover border-0 h-100">
+            <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
+                <h5 class="mb-0 fw-bold">Session Statistics</h5>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-center">
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="fw-medium">Present</span>
+                        <span class="fw-bold text-success">{{ present_pct }}%</span>
+                    </div>
+                    <div class="progress rounded-pill shadow-sm" style="height: 12px; background-color: var(--app-border-color);">
+                        <div class="progress-bar bg-success rounded-pill" role="progressbar" style="width: {{ present_pct }}%"></div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="fw-medium">Absent</span>
+                        <span class="fw-bold text-danger">{{ absent_pct }}%</span>
+                    </div>
+                    <div class="progress rounded-pill shadow-sm" style="height: 12px; background-color: var(--app-border-color);">
+                        <div class="progress-bar bg-danger rounded-pill" role="progressbar" style="width: {{ absent_pct }}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="fw-medium">Late</span>
+                        <span class="fw-bold text-warning">{{ late_pct }}%</span>
+                    </div>
+                    <div class="progress rounded-pill shadow-sm" style="height: 12px; background-color: var(--app-border-color);">
+                        <div class="progress-bar bg-warning rounded-pill" role="progressbar" style="width: {{ late_pct }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4 mb-md-0">
+        <div class="card card-hover border-0 h-100">
+            <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
+                <h5 class="mb-0 fw-bold">Session Distribution</h5>
+            </div>
+            <div class="card-body" style="position: relative; height:250px;">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-hover border-0 h-100">
+            <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
+                <h5 class="mb-0 fw-bold">Risk Distribution</h5>
+            </div>
+            <div class="card-body" style="position: relative; height:250px;">
+                <canvas id="riskPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Smart Alerts & Bar Chart -->
+<div class="row mb-4 fade-in" style="animation-delay: 0.15s; animation-fill-mode: both;">
+    <div class="col-md-8 mb-4 mb-md-0">
+        <div class="card card-hover border-0 h-100">
+            <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
+                <h5 class="mb-0 fw-bold">Attendance Rate per Group (%)</h5>
+            </div>
+            <div class="card-body" style="position: relative; height:250px;">
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-hover border-0 h-100 bg-light">
+            <div class="card-header bg-transparent border-bottom pt-4 pb-3">
+                <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-bell-fill me-2"></i>Smart Alerts</h5>
+            </div>
+            <div class="card-body p-0" style="max-height: 250px; overflow-y: auto;">
+                <ul class="list-group list-group-flush">
+                    {% for alert in smart_alerts %}
+                    <li class="list-group-item bg-transparent py-3 border-start border-4 {% if alert.priority == 'High' or alert.is_flagged %}border-danger bg-danger bg-opacity-10{% elif alert.type == 'REPORT' %}border-warning{% else %}border-primary{% endif %}">
+                        <div class="d-flex w-100 justify-content-between mb-1">
+                            <strong class="text-dark">{{ alert.student }}</strong>
+                            <small class="text-muted">{{ alert.timestamp|timesince }} ago</small>
+                        </div>
+                        <p class="mb-1 small text-dark fw-bold">
+                            {% if alert.type == 'REPORT' %}
+                                <i class="bi bi-file-earmark-medical-fill text-warning me-1"></i>
+                                New Report: {{ alert.title }}
+                            {% else %}
+                                <i class="bi bi-patch-check-fill text-primary me-1"></i>
+                                New Justification
+                            {% endif %}
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge {% if alert.priority == 'High' %}bg-danger{% elif alert.priority == 'Medium' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} px-2 py-1" style="font-size: 0.7rem;">
+                                {{ alert.subtype }}
+                            </span>
+                            <a href="{% if alert.type == 'REPORT' %}{% url 'students:admin_report_list' %}?status=Pending{% else %}{% url 'attendance:justification_list' %}{% endif %}" class="btn btn-sm btn-link p-0 text-decoration-none" style="font-size: 0.75rem;">
+                                View Details <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent py-5 text-center text-muted">
+                        <i class="bi bi-shield-check fs-2 d-block mb-2 text-success"></i>
+                        No pending alerts to review.
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Line Chart & Top Absences -->
+<div class="row mb-4 fade-in" style="animation-delay: 0.2s; animation-fill-mode: both;">
+    <div class="col-md-8 mb-4 mb-md-0">
+        <div class="card card-hover border-0 h-100">
+            <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
+                <h5 class="mb-0 fw-bold">Absences Over Time (Last 30 Days)</h5>
+            </div>
+            <div class="card-body" style="position: relative; height:300px;">
+                <canvas id="lineChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-hover border-0 h-100">
+            <div class="card-header bg-transparent border-bottom pt-4 pb-3">
+                <h5 class="mb-0 fw-bold text-danger"><i class="bi bi-shield-exclamation me-2"></i>Top At-Risk Students</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for item in top_absent_students %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div class="d-flex align-items-center">
+                            {% if item.student.profile_image %}
+                            <img src="{{ item.student.profile_image.url }}" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
+                            {% else %}
+                            <div class="rounded-circle bg-light text-primary d-flex justify-content-center align-items-center me-3" style="width: 40px; height: 40px;">
+                                <i class="bi bi-person"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <a href="{% url 'students:profile' item.student.id %}" class="text-decoration-none fw-bold text-dark">{{ item.student.full_name }}</a>
+                                <div class="small text-muted">Score: {{ item.score|floatformat:1 }}</div>
+                            </div>
+                        </div>
+                        <div>
+                            {% if item.alert == 'Critical' %}
+                                <span class="badge bg-danger rounded-pill">Critical</span>
+                            {% elif item.alert == 'At Risk' %}
+                                <span class="badge bg-warning text-dark rounded-pill">At Risk</span>
+                            {% else %}
+                                <span class="badge bg-success rounded-pill">Safe</span>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center py-4 text-muted">
+                        No at-risk students found.
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Shared Colors
+    const colors = {
+        present: 'rgba(25, 135, 84, 0.7)',
+        absent: 'rgba(220, 53, 69, 0.7)',
+        late: 'rgba(255, 193, 7, 0.7)',
+        primary: 'rgba(13, 110, 253, 0.7)',
+        safe: 'rgba(25, 135, 84, 0.7)',
+        atRisk: 'rgba(255, 193, 7, 0.7)',
+        critical: 'rgba(220, 53, 69, 0.7)',
+        borderPresent: 'rgb(25, 135, 84)',
+        borderAbsent: 'rgb(220, 53, 69)',
+        borderLate: 'rgb(255, 193, 7)',
+        borderPrimary: 'rgb(13, 110, 253)',
+        borderSafe: 'rgb(25, 135, 84)',
+        borderAtRisk: 'rgb(255, 193, 7)',
+        borderCritical: 'rgb(220, 53, 69)',
+    };
+
+    // Pie Chart
+    const pieCtx = document.getElementById('pieChart').getContext('2d');
+    new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Present', 'Absent', 'Late'],
+            datasets: [{
+                data: JSON.parse('{{ pie_data|safe }}'),
+                backgroundColor: [colors.present, colors.absent, colors.late],
+                borderColor: [colors.borderPresent, colors.borderAbsent, colors.borderLate],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    // Risk Pie Chart
+    const riskPieCtx = document.getElementById('riskPieChart').getContext('2d');
+    new Chart(riskPieCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Safe', 'At Risk', 'Critical'],
+            datasets: [{
+                data: JSON.parse('{{ risk_pie_data|safe }}'),
+                backgroundColor: [colors.safe, colors.atRisk, colors.critical],
+                borderColor: [colors.borderSafe, colors.borderAtRisk, colors.borderCritical],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    // Bar Chart
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: JSON.parse('{{ bar_labels|safe }}'),
+            datasets: [{
+                label: 'Attendance Rate (%)',
+                data: JSON.parse('{{ bar_data|safe }}'),
+                backgroundColor: colors.primary,
+                borderColor: colors.borderPrimary,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, max: 100 } },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Line Chart
+    const lineCtx = document.getElementById('lineChart').getContext('2d');
+    new Chart(lineCtx, {
+        type: 'line',
+        data: {
+            labels: JSON.parse('{{ line_labels|safe }}'),
+            datasets: [{
+                label: 'Absences',
+                data: JSON.parse('{{ line_data|safe }}'),
+                backgroundColor: 'rgba(220, 53, 69, 0.2)',
+                borderColor: colors.borderAbsent,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+    });
+});
+</script>
+{% endblock %}

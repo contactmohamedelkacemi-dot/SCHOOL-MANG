@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Attendance Reports</h2>
+    <div>
+        <a href="{% url 'attendance:attendance_export_csv' %}?start_date={{ start_date|default_if_none:'' }}&end_date={{ end_date|default_if_none:'' }}&group_id={{ selected_group|default_if_none:'' }}&student_id={{ selected_student|default_if_none:'' }}" class="btn btn-success me-2">
+            <i class="bi bi-file-earmark-excel"></i> Export CSV
+        </a>
+        <a href="{% url 'attendance:attendance_export_pdf' %}?start_date={{ start_date|default_if_none:'' }}&end_date={{ end_date|default_if_none:'' }}&group_id={{ selected_group|default_if_none:'' }}&student_id={{ selected_student|default_if_none:'' }}" target="_blank" class="btn btn-outline-danger">
+            <i class="bi bi-file-earmark-pdf"></i> Print PDF
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body bg-light rounded">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label text-muted fw-bold">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ start_date|default_if_none:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted fw-bold">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date|default_if_none:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted fw-bold">Group</label>
+                <select name="group_id" class="form-select">
+                    <option value="">All Groups</option>
+                    {% for g in groups %}
+                        <option value="{{ g.id }}" {% if selected_group == g.id %}selected{% endif %}>{{ g.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-muted fw-bold">Student</label>
+                <select name="student_id" class="form-select">
+                    <option value="">All Students</option>
+                    {% for s in students %}
+                        <option value="{{ s.id }}" {% if selected_student == s.id %}selected{% endif %}>{{ s.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1 d-grid">
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Report Table -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Student</th>
+                        <th>Group</th>
+                        <th class="text-center">S1</th>
+                        <th class="text-center">S2</th>
+                        <th class="text-center">S3</th>
+                        <th class="text-center">S4</th>
+                        <th class="text-center">Daily Status</th>
+                        <th class="text-center">Justification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in report_data %}
+                    <tr>
+                        <td class="fw-medium text-muted">{{ record.date|date:"Y-m-d" }}</td>
+                        <td>
+                            <strong>{{ record.student.full_name }}</strong>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ record.group.name }}</span></td>
+                        
+                        <!-- Sessions -->
+                        {% for i in "1234"|make_list %}
+                            <td class="text-center">
+                                {% for k, v in record.sessions.items %}
+                                    {% if k|stringformat:"s" == i %}
+                                        {% if v == 'Present' %}
+                                            <span class="text-success" title="Present"><i class="bi bi-check-circle-fill"></i></span>
+                                        {% elif v == 'Absent' %}
+                                            <span class="text-danger" title="Absent"><i class="bi bi-x-circle-fill"></i></span>
+                                        {% elif v == 'Late' %}
+                                            <span class="text-warning" title="Late"><i class="bi bi-clock-fill"></i></span>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if i|add:"0" not in record.sessions.keys %}
+                                    <span class="text-muted opacity-50">-</span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                        
+                        <!-- Daily Status -->
+                        <td class="text-center">
+                            {% if record.daily_status == 'Present' %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Present</span>
+                            {% elif record.daily_status == 'Absent' %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">Absent</span>
+                            {% elif record.daily_status == 'Late' %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">Late</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Justification -->
+                        <td class="text-center">
+                            {% if record.daily_status == 'Absent' %}
+                                {% if record.justification_status == 'Approved' %}
+                                    <span class="text-success small fw-bold"><i class="bi bi-check-lg"></i> Justifié</span>
+                                {% elif record.justification_status == 'Pending' %}
+                                    <span class="text-warning small fw-bold"><i class="bi bi-clock"></i> En attente</span>
+                                {% elif record.justification_status == 'Rejected' %}
+                                    <span class="text-danger small fw-bold"><i class="bi bi-x-lg"></i> Rejeté</span>
+                                {% else %}
+                                    <span class="text-danger small fw-bold">Non justifié</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="bi bi-filter-circle fs-1 d-block mb-3"></i>
+                            No attendance records match your filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

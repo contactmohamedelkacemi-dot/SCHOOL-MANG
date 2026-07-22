@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h4 class="mb-0">{% if is_update %}Edit Teacher{% else %}Add New Teacher{% endif %}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        Please correct the errors below.
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Full Name</label>
+                            {{ form.full_name }}
+                            {% if form.full_name.errors %}<div class="text-danger small">{{ form.full_name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone</label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}<div class="text-danger small">{{ form.phone.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">CIN</label>
+                            {{ form.cin }}
+                            {% if form.cin.errors %}<div class="text-danger small">{{ form.cin.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Date of Birth</label>
+                            {{ form.date_of_birth }}
+                            {% if form.date_of_birth.errors %}<div class="text-danger small">{{ form.date_of_birth.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Gender</label>
+                            {{ form.gender }}
+                            {% if form.gender.errors %}<div class="text-danger small">{{ form.gender.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Specialty</label>
+                            {{ form.specialty }}
+                            {% if form.specialty.errors %}<div class="text-danger small">{{ form.specialty.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        {{ form.address }}
+                        {% if form.address.errors %}<div class="text-danger small">{{ form.address.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Profile Image</label>
+                            {{ form.profile_image }}
+                            {% if form.profile_image.errors %}<div class="text-danger small">{{ form.profile_image.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">CV (Document)</label>
+                            {{ form.cv }}
+                            {% if form.cv.errors %}<div class="text-danger small">{{ form.cv.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'teachers:list' %}" class="btn btn-light">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Teacher</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

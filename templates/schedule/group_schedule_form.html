@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h4 class="mb-0">Add Schedule Slot</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors.0 }}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Group</label>
+                        <input type="text" class="form-control" value="{{ group.name }}" disabled>
+                        <div class="d-none">
+                            {{ form.group }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Module</label>
+                        {{ form.module }}
+                        {% if form.module.errors %}<div class="text-danger small">{{ form.module.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Teacher</label>
+                        {{ form.teacher }}
+                        {% if form.teacher.errors %}<div class="text-danger small">{{ form.teacher.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Day</label>
+                            {{ form.day }}
+                            {% if form.day.errors %}<div class="text-danger small">{{ form.day.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Time</label>
+                            {{ form.time }}
+                            {% if form.time.errors %}<div class="text-danger small">{{ form.time.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <a href="{% url 'schedule:group_schedule_view' group.id %}" class="btn btn-light">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Slot</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

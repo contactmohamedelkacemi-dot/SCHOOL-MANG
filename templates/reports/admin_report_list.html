@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Reports - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1 fw-bold">Student Reports Dashboard</h2>
+        <p class="text-muted mb-0">Review, manage, and take action on reports submitted by teachers.</p>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-body bg-light rounded d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 text-muted fw-bold"><i class="bi bi-funnel me-2"></i>Filter Reports</h6>
+        <div class="btn-group shadow-sm" role="group">
+            <a href="{% url 'students:admin_report_list' %}" class="btn {% if not current_filter %}btn-primary{% else %}btn-outline-primary{% endif %} px-4">All</a>
+            <a href="?status=Pending" class="btn {% if current_filter == 'Pending' %}btn-warning text-dark{% else %}btn-outline-warning text-dark{% endif %} px-4">Pending</a>
+            <a href="?status=Reviewed" class="btn {% if current_filter == 'Reviewed' %}btn-success{% else %}btn-outline-success{% endif %} px-4">Reviewed</a>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Student</th>
+                        <th>Teacher</th>
+                        <th>Type</th>
+                        <th>Priority</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold">{{ report.created_at|date:"M d, Y" }}</div>
+                            <small class="text-muted">{{ report.created_at|time:"H:i" }}</small>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ report.student.full_name }}</div>
+                            <small class="text-muted">{{ report.group.name|default:"No Group" }}</small>
+                        </td>
+                        <td>{{ report.teacher.user.get_full_name|default:report.teacher.user.username }}</td>
+                        <td><span class="badge bg-secondary">{{ report.report_type }}</span></td>
+                        <td>
+                            {% if report.priority == 'High' %}
+                                <span class="badge bg-danger">High</span>
+                            {% elif report.priority == 'Medium' %}
+                                <span class="badge bg-warning text-dark">Medium</span>
+                            {% else %}
+                                <span class="badge bg-info text-dark">Low</span>
+                            {% endif %}
+                            
+                            {% if report.is_flagged %}
+                                <i class="bi bi-flag-fill text-danger ms-1" title="Flagged for immediate attention"></i>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if report.status == 'Pending' %}
+                                <span class="badge border border-warning text-warning bg-light"><i class="bi bi-clock me-1"></i>Pending</span>
+                            {% else %}
+                                <span class="badge border border-success text-success bg-light"><i class="bi bi-check-circle me-1"></i>Reviewed</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#reportModal-{{ report.id }}">
+                                <i class="bi bi-search me-1"></i>Review
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-check2-circle fs-1 text-success d-block mb-3"></i>
+                            No reports found matching the current filter.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Report Detail Modals -->
+{% for report in reports %}
+<div class="modal fade" id="reportModal-{{ report.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">
+                    {% if report.is_flagged %}<i class="bi bi-flag-fill text-danger me-2"></i>{% else %}<i class="bi bi-file-earmark-text text-primary me-2"></i>{% endif %}
+                    Report Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row mb-4 border-bottom pb-3">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <p class="text-muted small mb-1">Student</p>
+                        <h6 class="fw-bold">{{ report.student.full_name }} ({{ report.student.code }})</h6>
+                        <small class="text-muted">Group: {{ report.group.name|default:"N/A" }}</small>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <p class="text-muted small mb-1">Submitted By</p>
+                        <h6 class="fw-bold">{{ report.teacher.user.get_full_name|default:report.teacher.user.username }}</h6>
+                        <small class="text-muted">{{ report.created_at|date:"M d, Y H:i" }}</small>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-secondary me-2">{{ report.report_type }}</span>
+                        {% if report.priority == 'High' %}
+                            <span class="badge bg-danger me-2">Priority: High</span>
+                        {% elif report.priority == 'Medium' %}
+                            <span class="badge bg-warning text-dark me-2">Priority: Medium</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark me-2">Priority: Low</span>
+                        {% endif %}
+                    </div>
+                    <h5 class="fw-bold mb-3">{{ report.title }}</h5>
+                    <div class="p-3 bg-light rounded border">
+                        <p class="mb-0" style="white-space: pre-wrap;">{{ report.description }}</p>
+                    </div>
+                </div>
+
+                <form method="POST" action="{% url 'students:admin_report_review' report.id %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted">Admin Notes / Feedback (Optional)</label>
+                        <textarea class="form-control" name="admin_comment" rows="3" placeholder="Enter any administrative notes or resolution details here..." {% if report.status == 'Reviewed' %}readonly{% endif %}>{{ report.admin_comment|default:"" }}</textarea>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <button type="submit" name="action" value="delete" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this report? This cannot be undone.');">
+                            <i class="bi bi-trash me-1"></i>Delete Report
+                        </button>
+                        
+                        <div>
+                            <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Close</button>
+                            {% if report.status == 'Pending' %}
+                                <button type="submit" name="action" value="review" class="btn btn-success shadow-sm px-4">
+                                    <i class="bi bi-check2-circle me-2"></i>Mark as Reviewed
+                                </button>
+                            {% else %}
+                                <span class="badge bg-success px-4 py-2 fs-6"><i class="bi bi-check2-circle me-2"></i>Reviewed</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

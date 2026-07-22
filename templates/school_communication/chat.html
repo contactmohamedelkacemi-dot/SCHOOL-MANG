@@ -1,0 +1,480 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="chat-app-container" id="chatApp">
+    <div class="row g-0" style="height: calc(100vh - 160px); min-height: 500px;">
+        
+        <!-- ═══════════════════════════════════════════════
+             LEFT SIDEBAR — Conversations & Groups
+             ═══════════════════════════════════════════════ -->
+        <div class="col-md-4 col-lg-3 chat-sidebar" id="chatSidebar">
+            <div class="chat-sidebar-inner">
+                <!-- Header -->
+                <div class="chat-sidebar-header">
+                    <h5 class="mb-0 fw-bold"><i class="bi bi-chat-dots-fill me-2 text-primary"></i>Messages</h5>
+                    <button class="btn btn-sm btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#newChatModal" title="New Chat">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Search -->
+                <div class="px-3 pb-2">
+                    <div class="input-group input-group-sm chat-search">
+                        <span class="input-group-text border-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-0" placeholder="Search conversations..." id="chatSearchInput">
+                    </div>
+                </div>
+
+                <!-- Tabs: Direct / Groups -->
+                <ul class="nav nav-pills nav-fill px-3 mb-2 chat-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#directTab" type="button"><i class="bi bi-person me-1"></i>Direct</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#groupTab" type="button"><i class="bi bi-people me-1"></i>Groups</button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content chat-conversations-list">
+                    <!-- Direct Conversations -->
+                    <div class="tab-pane fade show active" id="directTab">
+                        {% if conversation_list %}
+                            {% for c in conversation_list %}
+                            <div class="chat-conversation-item {% if c.unread_count > 0 %}unread{% endif %}" 
+                                 data-conversation-id="{{ c.id }}" data-type="direct" onclick="openConversation({{ c.id }}, 'direct')">
+                                <div class="chat-avatar">
+                                    <div class="avatar-circle {% if c.other_user.role == 'admin' %}bg-danger{% elif c.other_user.role == 'formateur' %}bg-info{% else %}bg-success{% endif %}">
+                                        {{ c.other_user.username|first|upper }}
+                                    </div>
+                                </div>
+                                <div class="chat-conv-info">
+                                    <div class="chat-conv-name">
+                                        {{ c.other_user.get_full_name|default:c.other_user.username }}
+                                        <span class="badge bg-secondary-subtle text-secondary ms-1" style="font-size: 0.65rem;">{{ c.other_user.get_role_display|default:c.other_user.role }}</span>
+                                    </div>
+                                    <div class="chat-conv-preview">
+                                        {% if c.last_message %}
+                                            {% if c.last_message.sender == request.user %}You: {% endif %}
+                                            {{ c.last_message.body|truncatewords:8|default:"📎 Attachment" }}
+                                        {% else %}
+                                            No messages yet
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="chat-conv-meta">
+                                    {% if c.last_message %}
+                                    <div class="chat-conv-time">{{ c.last_message.created_at|timesince }} ago</div>
+                                    {% endif %}
+                                    {% if c.unread_count > 0 %}
+                                    <span class="badge bg-primary rounded-pill chat-unread-badge">{{ c.unread_count }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state-mini">
+                                <i class="bi bi-chat-text text-muted" style="font-size: 2.5rem;"></i>
+                                <p class="text-muted mt-2 mb-0">No conversations yet</p>
+                                <small class="text-muted">Start a new chat!</small>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Group Conversations -->
+                    <div class="tab-pane fade" id="groupTab">
+                        {% if group_list %}
+                            {% for g in group_list %}
+                            <div class="chat-conversation-item" data-group-id="{{ g.group.id }}" data-type="group" onclick="openConversation({{ g.group.id }}, 'group')">
+                                <div class="chat-avatar">
+                                    <div class="avatar-circle bg-warning">
+                                        <i class="bi bi-people-fill"></i>
+                                    </div>
+                                </div>
+                                <div class="chat-conv-info">
+                                    <div class="chat-conv-name">{{ g.group }}</div>
+                                    <div class="chat-conv-preview">
+                                        {% if g.last_message %}
+                                            {{ g.last_message.sender.username }}: {{ g.last_message.body|truncatewords:6|default:"📎 Attachment" }}
+                                        {% else %}
+                                            No messages yet
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="chat-conv-meta">
+                                    {% if g.last_message %}
+                                    <div class="chat-conv-time">{{ g.last_message.created_at|timesince }} ago</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state-mini">
+                                <i class="bi bi-people text-muted" style="font-size: 2.5rem;"></i>
+                                <p class="text-muted mt-2 mb-0">No group chats</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+             MAIN CHAT PANEL
+             ═══════════════════════════════════════════════ -->
+        <div class="col-md-8 col-lg-9 chat-main-panel" id="chatMainPanel">
+            <!-- Empty state -->
+            <div class="chat-empty-state" id="chatEmptyState">
+                <div class="text-center">
+                    <div class="chat-empty-icon">
+                        <i class="bi bi-chat-square-dots"></i>
+                    </div>
+                    <h4 class="fw-bold mt-3">Start a Conversation</h4>
+                    <p class="text-muted">Select a conversation from the sidebar<br>or start a new one.</p>
+                    <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#newChatModal">
+                        <i class="bi bi-plus-circle me-2"></i>New Chat
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Chat View (hidden by default) -->
+            <div class="chat-active-view d-none" id="chatActiveView">
+                <!-- Chat Header -->
+                <div class="chat-header">
+                    <button class="btn btn-sm border-0 d-md-none me-2" onclick="showSidebar()">
+                        <i class="bi bi-arrow-left fs-5"></i>
+                    </button>
+                    <div class="chat-avatar">
+                        <div class="avatar-circle bg-primary" id="chatHeaderAvatar">?</div>
+                    </div>
+                    <div class="ms-2">
+                        <div class="fw-bold" id="chatHeaderName">Loading...</div>
+                        <div class="small text-muted" id="chatHeaderRole"></div>
+                    </div>
+                </div>
+
+                <!-- Messages Container -->
+                <div class="chat-messages-container" id="chatMessagesContainer">
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Messages populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="chat-input-area">
+                    <form id="chatSendForm" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="chat-input-wrapper">
+                            <label class="btn btn-sm border-0 text-muted chat-attach-btn" for="chatAttachment" title="Attach file">
+                                <i class="bi bi-paperclip fs-5"></i>
+                            </label>
+                            <input type="file" id="chatAttachment" name="attachment" class="d-none" accept="image/*,.pdf,.doc,.docx">
+                            <input type="text" class="form-control chat-input" id="chatInput" name="body" placeholder="Type a message..." autocomplete="off">
+                            <button type="submit" class="btn btn-primary chat-send-btn rounded-circle">
+                                <i class="bi bi-send-fill"></i>
+                            </button>
+                        </div>
+                        <div class="chat-attachment-preview d-none" id="chatAttachmentPreview">
+                            <span id="chatAttachmentName"></span>
+                            <button type="button" class="btn btn-sm text-danger" onclick="clearAttachment()"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Chat Modal -->
+<div class="modal fade" id="newChatModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius: 1.25rem;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-chat-dots me-2 text-primary"></i>New Conversation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="contactSearchInput" placeholder="Search contacts...">
+                </div>
+                <div class="contact-list" id="contactList" style="max-height: 350px; overflow-y: auto;">
+                    {% for contact in contacts %}
+                    <div class="contact-item" data-user-id="{{ contact.pk }}" data-name="{{ contact.get_full_name|default:contact.username }}" onclick="startNewChat({{ contact.pk }})">
+                        <div class="avatar-circle avatar-sm {% if contact.role == 'admin' %}bg-danger{% elif contact.role == 'formateur' %}bg-info{% else %}bg-success{% endif %}">
+                            {{ contact.username|first|upper }}
+                        </div>
+                        <div class="ms-3">
+                            <div class="fw-semibold">{{ contact.get_full_name|default:contact.username }}</div>
+                            <div class="small text-muted text-uppercase">{{ contact.role }}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-person-x" style="font-size: 2rem;"></i>
+                        <p class="mt-2">No available contacts</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const CURRENT_USER_ID = {{ request.user.pk }};
+const CSRF_TOKEN = '{{ csrf_token }}';
+let currentConversationId = null;
+let currentConversationType = null; // 'direct' or 'group'
+let lastMessageId = 0;
+let pollInterval = null;
+
+// ──────────────────────────────────────────────
+//  Open Conversation
+// ──────────────────────────────────────────────
+function openConversation(id, type) {
+    currentConversationId = id;
+    currentConversationType = type;
+
+    // Highlight active item
+    document.querySelectorAll('.chat-conversation-item').forEach(el => el.classList.remove('active'));
+    const selector = type === 'direct' ? `[data-conversation-id="${id}"]` : `[data-group-id="${id}"]`;
+    const item = document.querySelector(selector);
+    if (item) item.classList.add('active');
+
+    // Show active view
+    document.getElementById('chatEmptyState').classList.add('d-none');
+    document.getElementById('chatActiveView').classList.remove('d-none');
+
+    // Mobile: hide sidebar
+    document.getElementById('chatSidebar').classList.add('chat-sidebar-hidden');
+
+    loadMessages();
+    startPolling();
+}
+
+function loadMessages() {
+    const url = currentConversationType === 'direct'
+        ? `/communication/chat/${currentConversationId}/messages/`
+        : `/communication/chat/group/${currentConversationId}/messages/`;
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(r => r.json())
+    .then(data => {
+        const container = document.getElementById('chatMessages');
+        container.innerHTML = '';
+
+        if (currentConversationType === 'direct' && data.other_user) {
+            document.getElementById('chatHeaderName').textContent = data.other_user.name;
+            document.getElementById('chatHeaderRole').textContent = data.other_user.role;
+            document.getElementById('chatHeaderAvatar').textContent = data.other_user.name.charAt(0).toUpperCase();
+        } else if (data.group) {
+            document.getElementById('chatHeaderName').textContent = data.group.name;
+            document.getElementById('chatHeaderRole').textContent = 'Group Chat';
+            document.getElementById('chatHeaderAvatar').innerHTML = '<i class="bi bi-people-fill"></i>';
+        }
+
+        if (data.messages.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-chat-left-text" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <p class="mt-2">No messages yet. Say hello! 👋</p>
+                </div>`;
+            lastMessageId = 0;
+        } else {
+            data.messages.forEach(m => appendMessage(m));
+            lastMessageId = data.messages[data.messages.length - 1].id;
+        }
+
+        scrollToBottom();
+
+        // Remove unread badge
+        if (currentConversationType === 'direct') {
+            const item = document.querySelector(`[data-conversation-id="${currentConversationId}"]`);
+            if (item) {
+                item.classList.remove('unread');
+                const badge = item.querySelector('.chat-unread-badge');
+                if (badge) badge.remove();
+            }
+        }
+    });
+}
+
+function appendMessage(m) {
+    const container = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = `chat-message ${m.is_mine ? 'chat-message-mine' : 'chat-message-other'}`;
+    div.dataset.messageId = m.id;
+
+    let content = '';
+    if (!m.is_mine && currentConversationType === 'group') {
+        content += `<div class="chat-msg-sender">${escapeHtml(m.sender_name)}</div>`;
+    }
+    if (m.body) {
+        content += `<div class="chat-msg-body">${escapeHtml(m.body)}</div>`;
+    }
+    if (m.attachment) {
+        if (m.is_image) {
+            content += `<div class="chat-msg-attachment"><img src="${m.attachment}" alt="Image" class="chat-img-attachment" onclick="window.open('${m.attachment}', '_blank')"></div>`;
+        } else {
+            content += `<div class="chat-msg-attachment"><a href="${m.attachment}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill"><i class="bi bi-file-earmark me-1"></i>${escapeHtml(m.attachment_name || 'File')}</a></div>`;
+        }
+    }
+
+    let statusIcon = '';
+    if (m.is_mine && currentConversationType === 'direct') {
+        if (m.status === 'seen') statusIcon = '<i class="bi bi-check-all text-primary"></i>';
+        else if (m.status === 'delivered') statusIcon = '<i class="bi bi-check-all"></i>';
+        else statusIcon = '<i class="bi bi-check"></i>';
+    }
+    content += `<div class="chat-msg-meta">${m.created_at} ${statusIcon}</div>`;
+
+    div.innerHTML = `<div class="chat-msg-bubble">${content}</div>`;
+    container.appendChild(div);
+}
+
+function scrollToBottom() {
+    const container = document.getElementById('chatMessagesContainer');
+    setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
+}
+
+// ──────────────────────────────────────────────
+//  Send Message
+// ──────────────────────────────────────────────
+document.getElementById('chatSendForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const input = document.getElementById('chatInput');
+    const fileInput = document.getElementById('chatAttachment');
+    const body = input.value.trim();
+    const file = fileInput.files[0];
+
+    if (!body && !file) return;
+
+    const formData = new FormData();
+    formData.append('body', body);
+    if (file) formData.append('attachment', file);
+
+    const url = currentConversationType === 'direct'
+        ? `/communication/chat/${currentConversationId}/send/`
+        : `/communication/chat/group/${currentConversationId}/send/`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN },
+        body: formData,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+        appendMessage(data);
+        lastMessageId = data.id;
+        scrollToBottom();
+        input.value = '';
+        clearAttachment();
+    });
+});
+
+// ──────────────────────────────────────────────
+//  Polling (for real-time feel)
+// ──────────────────────────────────────────────
+function startPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(() => {
+        if (!currentConversationId) return;
+        const url = currentConversationType === 'direct'
+            ? `/communication/chat/${currentConversationId}/poll/?after=${lastMessageId}`
+            : `/communication/chat/group/${currentConversationId}/poll/?after=${lastMessageId}`;
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(data => {
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(m => appendMessage(m));
+                lastMessageId = data.messages[data.messages.length - 1].id;
+                scrollToBottom();
+            }
+        });
+    }, 3000); // Poll every 3 seconds
+}
+
+// ──────────────────────────────────────────────
+//  New Chat
+// ──────────────────────────────────────────────
+function startNewChat(userId) {
+    const formData = new FormData();
+    formData.append('user_id', userId);
+
+    fetch('/communication/chat/start/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN },
+        body: formData,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+        bootstrap.Modal.getInstance(document.getElementById('newChatModal')).hide();
+        // Reload page to show new conversation in sidebar
+        window.location.href = `/communication/chat/?open=${data.conversation_id}`;
+    });
+}
+
+// ──────────────────────────────────────────────
+//  Attachments
+// ──────────────────────────────────────────────
+document.getElementById('chatAttachment').addEventListener('change', function() {
+    if (this.files[0]) {
+        document.getElementById('chatAttachmentPreview').classList.remove('d-none');
+        document.getElementById('chatAttachmentName').textContent = this.files[0].name;
+    }
+});
+
+function clearAttachment() {
+    document.getElementById('chatAttachment').value = '';
+    document.getElementById('chatAttachmentPreview').classList.add('d-none');
+}
+
+// ──────────────────────────────────────────────
+//  Search
+// ──────────────────────────────────────────────
+document.getElementById('chatSearchInput').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.chat-conversation-item').forEach(el => {
+        const name = el.querySelector('.chat-conv-name')?.textContent.toLowerCase() || '';
+        el.style.display = name.includes(q) ? '' : 'none';
+    });
+});
+
+document.getElementById('contactSearchInput')?.addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.contact-item').forEach(el => {
+        const name = el.dataset.name.toLowerCase();
+        el.style.display = name.includes(q) ? '' : 'none';
+    });
+});
+
+// ──────────────────────────────────────────────
+//  Mobile helpers
+// ──────────────────────────────────────────────
+function showSidebar() {
+    document.getElementById('chatSidebar').classList.remove('chat-sidebar-hidden');
+}
+
+// ──────────────────────────────────────────────
+//  Utility
+// ──────────────────────────────────────────────
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+// Auto-open conversation from URL param
+document.addEventListener('DOMContentLoaded', function() {
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get('open');
+    if (openId) {
+        openConversation(parseInt(openId), 'direct');
+    }
+});
+</script>
+{% endblock %}

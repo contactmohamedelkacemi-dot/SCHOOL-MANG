@@ -1,0 +1,277 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Management System</title>
+    
+    <!-- Anti-FOUC Script -->
+    <script>
+        (function() {
+            try {
+                var storedTheme = localStorage.getItem('theme');
+                if (storedTheme) {
+                    document.documentElement.setAttribute('data-bs-theme', storedTheme);
+                } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.setAttribute('data-bs-theme', 'dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom Theme CSS -->
+    <link href="{% static 'css/style.css' %}?v=1.0.5" rel="stylesheet">
+    <!-- Communication System CSS -->
+    <link href="{% static 'css/communication.css' %}?v=1.0.5" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="d-flex" id="wrapper">
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <div class="sidebar-heading p-3 border-bottom text-center fs-5 fw-bold">
+                <i class="bi bi-mortarboard-fill me-2 text-primary"></i>School Admin
+            </div>
+            <div class="list-group list-group-flush mt-3 px-3">
+                <a href="{% url 'dashboard:index' %}" class="list-group-item bg-transparent border-0 sidebar-link {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
+                    <i class="bi bi-speedometer2 me-3"></i>Dashboard
+                </a>
+                {% if user.role == 'admin' %}
+                <a href="/students/" class="list-group-item bg-transparent border-0 sidebar-link {% if request.resolver_match.app_name == 'students' %}active{% endif %}">
+                    <i class="bi bi-people me-3"></i>Students
+                </a>
+                <a href="/teachers/" class="list-group-item bg-transparent border-0 sidebar-link {% if request.resolver_match.app_name == 'teachers' %}active{% endif %}">
+                    <i class="bi bi-person-workspace me-3"></i>Teachers
+                </a>
+                <a href="/classes/" class="list-group-item bg-transparent border-0 sidebar-link {% if request.resolver_match.app_name == 'classes' and request.resolver_match.url_name != 'group_list' and request.resolver_match.url_name != 'group_create' %}active{% endif %}">
+                    <i class="bi bi-building me-3"></i>Classes
+                </a>
+                <a href="/classes/groups/" class="list-group-item bg-transparent border-0 sidebar-link {% if request.resolver_match.app_name == 'classes' and 'group' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-collection me-3"></i>Groups
+                </a>
+                <a href="/schedule/groups/" class="list-group-item bg-transparent border-0 sidebar-link {% if request.resolver_match.app_name == 'schedule' %}active{% endif %}">
+                    <i class="bi bi-calendar3 me-3"></i>Schedule
+                </a>
+                <a href="/attendance/groups/" class="list-group-item bg-transparent border-0 sidebar-link {% if request.resolver_match.app_name == 'attendance' %}active{% endif %}">
+                    <i class="bi bi-card-checklist me-3"></i>Attendance
+                </a>
+                <a href="{% url 'students:admin_report_list' %}" class="list-group-item bg-transparent border-0 sidebar-link {% if request.resolver_match.url_name == 'admin_report_list' %}active{% endif %}">
+                    <i class="bi bi-file-earmark-medical me-3"></i>Student Reports
+                </a>
+                {% elif user.role == 'formateur' %}
+                <a href="{% url 'students:teacher_report_list' %}" class="list-group-item bg-transparent border-0 sidebar-link {% if request.resolver_match.url_name == 'teacher_report_list' or request.resolver_match.url_name == 'teacher_report_create' %}active{% endif %}">
+                    <i class="bi bi-file-earmark-text me-3"></i>My Reports
+                </a>
+                {% endif %}
+
+                {% if user.is_authenticated %}
+                <div class="mt-3 mb-1 px-1"><small class="text-uppercase fw-bold" style="color: var(--app-sidebar-text); font-size: 0.7rem; letter-spacing: 0.1em;">Communication</small></div>
+                <a href="{% url 'school_communication:chat_home' %}" class="list-group-item bg-transparent border-0 sidebar-link {% if request.resolver_match.app_name == 'school_communication' and 'chat' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-chat-dots me-3"></i>Chat
+                </a>
+                <a href="{% url 'school_communication:inbox_home' %}" class="list-group-item bg-transparent border-0 sidebar-link {% if request.resolver_match.app_name == 'school_communication' and 'inbox' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-envelope me-3"></i>Inbox
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div id="page-content-wrapper" class="w-100" style="overflow-y: auto; height: 100vh;">
+            <nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm sticky-top">
+                <div class="container-fluid px-4 py-2">
+                    <button class="btn btn-outline-secondary d-md-none border-0 shadow-none" id="menu-toggle">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+                    
+                    <div class="ms-auto d-flex align-items-center gap-3">
+                        {% if user.is_authenticated %}
+                        <!-- Notification Bell -->
+                        <div class="dropdown notification-bell">
+                            <button class="btn btn-outline-secondary rounded-circle border-0 shadow-none position-relative" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" id="notifBellBtn">
+                                <i class="bi bi-bell fs-5"></i>
+                                <span class="badge bg-danger rounded-pill notification-badge d-none" id="notifBadge">0</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end notification-dropdown p-0" id="notifDropdown">
+                                <div class="dropdown-header">
+                                    <span>Notifications</span>
+                                    <button class="btn btn-sm btn-link text-primary p-0 text-decoration-none" onclick="markAllNotificationsRead()" style="font-size: 0.8rem;">Mark all read</button>
+                                </div>
+                                <div class="notification-list" id="notifList">
+                                    <div class="notification-empty">
+                                        <i class="bi bi-bell-slash" style="font-size: 2rem;"></i>
+                                        <p class="mt-2 mb-0 small">No notifications</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <button class="btn btn-outline-secondary rounded-circle border-0 shadow-none" id="theme-toggle" title="Toggle Theme">
+                            <i class="bi bi-moon-stars fs-5" id="theme-icon"></i>
+                        </button>
+                        
+                        {% if user.is_authenticated %}
+                            <div class="d-flex align-items-center">
+                                <div class="me-3 text-end d-none d-md-block">
+                                    <div class="fw-bold">{{ user.username }}</div>
+                                    <div class="small text-muted text-uppercase">{{ user.role }}</div>
+                                </div>
+                                {% if user.role == 'formateur' %}
+                                    <a href="{% url 'dashboard:teacher_profile' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 me-2" style="white-space: nowrap;"><i class="bi bi-person-fill me-1"></i>My Profile</a>
+                                {% elif user.role == 'stagiaire' %}
+                                    <a href="{% url 'dashboard:student_profile' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3 me-2" style="white-space: nowrap;"><i class="bi bi-person-fill me-1"></i>My Profile</a>
+                                {% endif %}
+                                <form action="{% url 'accounts:logout' %}" method="post" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">Logout</button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <a class="btn btn-primary rounded-pill px-4" href="{% url 'accounts:login' %}">Login</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </nav>
+
+            <div class="container-fluid p-4 p-md-5 fade-in">
+                {% if messages %}
+                    {% for message in messages %}
+                        {% if "PASSWORD_RESET:" in message.message %}
+                            <script>
+                                document.addEventListener("DOMContentLoaded", function() {
+                                    window.showPasswordResetModal("{{ message.message|slice:'15:' }}");
+                                });
+                            </script>
+                        {% else %}
+                            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 shadow-sm auto-dismiss-alert" role="alert">
+                                {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>{% endif %}
+                                {% if message.tags == 'error' or message.tags == 'danger' %}<i class="bi bi-exclamation-triangle-fill me-2"></i>{% endif %}
+                                {% if message.tags == 'warning' %}<i class="bi bi-exclamation-circle-fill me-2"></i>{% endif %}
+                                {% if message.tags == 'info' %}<i class="bi bi-info-circle-fill me-2"></i>{% endif %}
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom Theme JS -->
+    <script src="{% static 'js/main.js' %}?v=1.0.5"></script>
+    
+    <!-- Auto-dismiss Alerts -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            setTimeout(function() {
+                var alerts = document.querySelectorAll('.auto-dismiss-alert');
+                alerts.forEach(function(alert) {
+                    var bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 3000);
+        });
+    </script>
+
+    {% if user.is_authenticated %}
+    <!-- Notification System JS -->
+    <script>
+    (function() {
+        const CSRF = '{{ csrf_token }}';
+
+        function getCategoryIcon(cat) {
+            const icons = {
+                'chat': 'bi-chat-dots-fill',
+                'inbox': 'bi-envelope-fill',
+                'report': 'bi-file-earmark-text-fill',
+                'justification': 'bi-file-check-fill',
+                'report_priority': 'bi-exclamation-triangle-fill',
+                'justification_pending': 'bi-hourglass-split',
+                'absence_alert': 'bi-person-x-fill',
+                'system': 'bi-gear-fill',
+            };
+            return icons[cat] || 'bi-bell-fill';
+        }
+
+        function loadNotifications() {
+            fetch('/communication/notifications/', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                const badge = document.getElementById('notifBadge');
+                if (data.unread_count > 0) {
+                    badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+                    badge.classList.remove('d-none');
+                } else {
+                    badge.classList.add('d-none');
+                }
+
+                const list = document.getElementById('notifList');
+                if (data.notifications.length === 0) {
+                    list.innerHTML = '<div class="notification-empty"><i class="bi bi-bell-slash" style="font-size: 2rem;"></i><p class="mt-2 mb-0 small">No notifications yet</p></div>';
+                    return;
+                }
+
+                list.innerHTML = '';
+                data.notifications.forEach(n => {
+                    const item = document.createElement('a');
+                    item.href = n.url || '#';
+                    item.className = 'notification-item' + (n.is_read ? '' : ' unread');
+                    item.onclick = function(e) {
+                        if (!n.is_read) {
+                            fetch(`/communication/notifications/${n.id}/read/`, {
+                                method: 'POST',
+                                headers: { 'X-CSRFToken': CSRF }
+                            });
+                        }
+                    };
+                    item.innerHTML = `
+                        <div class="notification-icon ${n.type}">
+                            <i class="bi ${getCategoryIcon(n.category)}"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">${n.title}</div>
+                            <div class="notification-message">${n.message || ''}</div>
+                            <div class="notification-time">${n.created_at}</div>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            })
+            .catch(() => {});
+        }
+
+        window.markAllNotificationsRead = function() {
+            fetch('/communication/notifications/mark-all-read/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF }
+            })
+            .then(() => loadNotifications());
+        };
+
+        // Initial load + poll every 15 seconds
+        loadNotifications();
+        setInterval(loadNotifications, 15000);
+    })();
+    </script>
+    {% endif %}
+</body>
+</html>

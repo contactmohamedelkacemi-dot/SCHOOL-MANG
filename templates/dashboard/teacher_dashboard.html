@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+
+{% block title %}Teacher Dashboard - School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1 fw-bold">Teacher Dashboard</h2>
+        <p class="text-muted mb-0">Welcome back, <span class="fw-bold text-dark">{{ request.user.get_full_name|default:request.user.username }}</span></p>
+    </div>
+    <div>
+        <a href="{% url 'dashboard:teacher_profile' %}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="bi bi-person-circle me-2"></i>View My Profile
+        </a>
+    </div>
+</div>
+
+<style>
+    .summary-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+</style>
+
+<div class="row fade-in mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card shadow-sm border-0 bg-primary text-white h-100 summary-card">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                    <i class="bi bi-collection-fill fs-3"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 text-white-50">Total Groups</h6>
+                    <h3 class="mb-0 fw-bold">{{ total_groups }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card shadow-sm border-0 bg-success text-white h-100 summary-card">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                    <i class="bi bi-people-fill fs-3"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 text-white-50">Total Students</h6>
+                    <h3 class="mb-0 fw-bold">{{ total_students }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card shadow-sm border-0 bg-info text-white h-100 summary-card">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                    <i class="bi bi-journal-bookmark-fill fs-3"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 text-white-50">Modules Taught</h6>
+                    <h3 class="mb-0 fw-bold">{{ total_modules }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card shadow-sm border-0 bg-warning text-dark h-100 summary-card">
+            <div class="card-body d-flex align-items-center">
+                <div class="rounded-circle bg-white bg-opacity-50 p-3 me-3">
+                    <i class="bi bi-calendar-event-fill fs-3"></i>
+                </div>
+                <div>
+                    <h6 class="mb-0 text-dark opacity-75">Sessions/Week</h6>
+                    <h3 class="mb-0 fw-bold">{{ total_sessions }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if has_data %}
+<div class="row fade-in mb-4">
+    <!-- Attendance Summary -->
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-transparent border-bottom pt-4 pb-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Overall Attendance</h5>
+            </div>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                {% if has_attendance_data %}
+                    <div style="width: 250px; height: 250px;">
+                        <canvas id="attendancePieChart"></canvas>
+                    </div>
+                    <div class="w-100 mt-4">
+                        <div class="d-flex justify-content-between mb-1 small">
+                            <span class="text-success fw-bold"><i class="bi bi-circle-fill me-1"></i>Present</span>
+                            <span>{{ present_pct }}%</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: {{ present_pct }}%"></div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-1 small">
+                            <span class="text-danger fw-bold"><i class="bi bi-circle-fill me-1"></i>Absent</span>
+                            <span>{{ absent_pct }}%</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 6px;">
+                            <div class="progress-bar bg-danger" style="width: {{ absent_pct }}%"></div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-1 small">
+                            <span class="text-warning fw-bold"><i class="bi bi-circle-fill me-1"></i>Late</span>
+                            <span>{{ late_pct }}%</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-warning" style="width: {{ late_pct }}%"></div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted my-auto py-5">
+                        <i class="bi bi-clipboard-x fs-1 opacity-50 mb-3 d-block"></i>
+                        <p class="mb-0">No attendance data recorded yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Attendance per Group -->
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-transparent border-bottom pt-4 pb-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-bar-chart-fill text-success me-2"></i>Attendance Rates by Group</h5>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                {% if has_attendance_data %}
+                    <div class="w-100" style="height: 300px;">
+                        <canvas id="groupBarChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted my-auto py-5">
+                        <i class="bi bi-bar-chart-line fs-1 opacity-50 mb-3 d-block"></i>
+                        <p class="mb-0">Chart will appear once attendance is recorded.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info border-0 shadow-sm mb-4">
+    <i class="bi bi-info-circle-fill me-2"></i> <strong>Welcome!</strong> You are not assigned to any groups yet. Once the administrator assigns you to a group, your dashboard and schedule will appear here.
+</div>
+{% endif %}
+
+<div class="row fade-in">
+    <!-- Assigned Groups Panel -->
+    <div class="col-lg-4 col-md-12 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-transparent border-bottom pt-4 pb-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-people-fill text-primary me-2"></i>My Assigned Groups</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for group in groups %}
+                        <li class="list-group-item d-flex flex-column py-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-dark">{{ group.name }}</h6>
+                                    <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ group.schedule_summary }}</small>
+                                </div>
+                                <span class="badge bg-light text-secondary border">{{ group.class_assigned.name }}</span>
+                            </div>
+                            
+                            {% if group.schedule_summary != "No sessions scheduled" %}
+                            <a href="{% url 'attendance:teacher_group_attendance' group.id %}" class="btn btn-sm btn-outline-primary w-100 rounded">
+                                <i class="bi bi-person-check me-1"></i> Take Attendance
+                            </a>
+                            {% else %}
+                            <button class="btn btn-sm btn-outline-secondary w-100 rounded" disabled>
+                                <i class="bi bi-calendar-x me-1"></i> No Sessions Assigned
+                            </button>
+                            {% endif %}
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item py-5 text-center text-muted">
+                            <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 60px; height: 60px;">
+                                <i class="bi bi-inbox fs-2 text-secondary opacity-50"></i>
+                            </div>
+                            <h6 class="fw-bold text-dark">No Groups Assigned</h6>
+                            <p class="small mb-0">You have not been assigned to any groups yet. Please contact the administrator.</p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Schedule Panel -->
+    <div class="col-lg-8 col-md-12 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-transparent border-bottom pt-4 pb-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-week-fill text-success me-2"></i>My Schedule</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped text-center align-middle mb-0" style="min-width: 600px;">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 15%;">Day</th>
+                                <th>08:00 - 10:00</th>
+                                <th>10:00 - 12:00</th>
+                                <th>14:00 - 16:00</th>
+                                <th>16:00 - 18:00</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day_data in schedule_data %}
+                            <tr>
+                                <td class="fw-bold bg-light">{{ day_data.day }}</td>
+                                {% for s in day_data.sessions %}
+                                    {% if s.schedule %}
+                                        <td class="p-2">
+                                            <div class="bg-success bg-opacity-10 text-success rounded p-2 h-100 border border-success border-opacity-25">
+                                                <div class="fw-bold small">{{ s.schedule.module.name }}</div>
+                                                <div class="small text-dark mt-1">{{ s.schedule.group.name }}</div>
+                                            </div>
+                                        </td>
+                                    {% else %}
+                                        <td class="text-muted opacity-25">--</td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="py-5 text-muted">
+                                    <div class="d-flex flex-column align-items-center">
+                                        <i class="bi bi-calendar-x fs-1 opacity-50 mb-2"></i>
+                                        <div>Your schedule is currently empty.</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+{% if has_attendance_data %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Pie Chart
+        const pieCtx = document.getElementById('attendancePieChart').getContext('2d');
+        const pieDataRaw = JSON.parse('{{ pie_data|escapejs }}');
+        
+        new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Present', 'Absent', 'Late'],
+                datasets: [{
+                    data: pieDataRaw,
+                    backgroundColor: ['#198754', '#dc3545', '#ffc107'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+        
+        // Bar Chart
+        const barCtx = document.getElementById('groupBarChart').getContext('2d');
+        const barLabels = JSON.parse('{{ bar_labels|escapejs }}');
+        const barDataValues = JSON.parse('{{ bar_data|escapejs }}');
+        
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: barLabels,
+                datasets: [{
+                    label: 'Presence Rate (%)',
+                    data: barDataValues,
+                    backgroundColor: 'rgba(25, 135, 84, 0.8)',
+                    borderColor: '#198754',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { borderDash: [2, 4], color: '#f0f0f0' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y + '% Presence';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Reports - School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1 fw-bold">My Submitted Reports</h2>
+        <p class="text-muted mb-0">Track and manage reports submitted for your students.</p>
+    </div>
+    <a href="{% url 'students:teacher_report_create' %}" class="btn btn-primary shadow-sm rounded-pill px-4">
+        <i class="bi bi-plus-circle me-2"></i>Submit New Report
+    </a>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Student</th>
+                        <th>Group</th>
+                        <th>Type</th>
+                        <th>Title</th>
+                        <th>Priority</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td>{{ report.created_at|date:"M d, Y" }}</td>
+                        <td>
+                            <div class="fw-bold">{{ report.student.full_name }}</div>
+                            <small class="text-muted">{{ report.student.code }}</small>
+                        </td>
+                        <td>{{ report.group.name }}</td>
+                        <td><span class="badge bg-secondary">{{ report.report_type }}</span></td>
+                        <td>
+                            {% if report.is_flagged %}
+                                <i class="bi bi-flag-fill text-danger me-1" title="Flagged for attention"></i>
+                            {% endif %}
+                            {{ report.title }}
+                        </td>
+                        <td>
+                            {% if report.priority == 'High' %}
+                                <span class="badge bg-danger">High</span>
+                            {% elif report.priority == 'Medium' %}
+                                <span class="badge bg-warning text-dark">Medium</span>
+                            {% else %}
+                                <span class="badge bg-info text-dark">Low</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if report.status == 'Pending' %}
+                                <span class="badge border border-warning text-warning bg-light"><i class="bi bi-clock me-1"></i>Pending</span>
+                            {% else %}
+                                <span class="badge border border-success text-success bg-light"><i class="bi bi-check-circle me-1"></i>Reviewed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-folder2-open fs-1 d-block mb-3"></i>
+                            You haven't submitted any reports yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

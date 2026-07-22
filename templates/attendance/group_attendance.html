@@ -1,0 +1,263 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>Attendance: {{ group.name }} <span class="badge bg-secondary">Summary</span></h2>
+        <h6 class="text-muted">Class: {{ group.class_assigned.name }}</h6>
+    </div>
+    <a href="{% url 'attendance:group_select' %}" class="btn btn-light"><i class="bi bi-arrow-left me-1"></i>Back to Groups</a>
+</div>
+
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-body bg-light rounded d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-muted">Date:</h5>
+        <form method="get" class="d-flex gap-2">
+            <input type="date" name="date" class="form-control bg-white" value="{{ attendance_date }}" onchange="this.form.submit()">
+            <button type="submit" class="btn btn-primary d-none">Go</button>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">Student Records</h6>
+        <div class="btn-group btn-group-sm shadow-sm" role="group" id="statusFilter">
+            <input type="radio" class="btn-check filter-btn" name="btnradio" id="btnAll" data-filter="all" checked>
+            <label class="btn btn-outline-secondary" for="btnAll">All Students</label>
+
+            <input type="radio" class="btn-check filter-btn" name="btnradio" id="btnPending" data-filter="Pending">
+            <label class="btn btn-outline-warning text-dark" for="btnPending">Pending</label>
+
+            <input type="radio" class="btn-check filter-btn" name="btnradio" id="btnApproved" data-filter="Approved">
+            <label class="btn btn-outline-success" for="btnApproved">Approved</label>
+
+            <input type="radio" class="btn-check filter-btn" name="btnradio" id="btnRejected" data-filter="Rejected">
+            <label class="btn btn-outline-danger" for="btnRejected">Rejected / Missing</label>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Code</th>
+                        <th class="text-center">Daily Status</th>
+                        <th class="text-center">Justification</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in student_records %}
+                    <tr class="student-row" data-justif-status="{% if item.daily_status == 'Absent' %}{% if item.justification_status %}{{ item.justification_status }}{% else %}Non justifié{% endif %}{% else %}all{% endif %}">
+                        <td>
+                            {% if item.student.profile_image %}
+                            <img src="{{ item.student.profile_image.url }}" class="rounded-circle me-2" width="30" height="30" style="object-fit: cover;">
+                            {% endif %}
+                            <strong>{{ item.student.full_name }}</strong>
+                        </td>
+                        <td>{{ item.student.code }}</td>
+                        <td class="text-center">
+                            {% if item.daily_status == 'Present' %}
+                                <span class="badge bg-success py-2 px-3">Present</span>
+                            {% elif item.daily_status == 'Absent' %}
+                                <span class="badge bg-danger py-2 px-3">Absent</span>
+                            {% elif item.daily_status == 'Late' %}
+                                <span class="badge bg-warning text-dark py-2 px-3">Late</span>
+                            {% else %}
+                                <span class="badge bg-secondary py-2 px-3">Not Marked</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if item.daily_status == 'Absent' %}
+                                {% if item.justification_status == 'Approved' %}
+                                    <span class="badge text-success border border-success"><i class="bi bi-check-circle me-1"></i>Justifié</span>
+                                {% elif item.justification_status == 'Pending' %}
+                                    <span class="badge text-warning border border-warning"><i class="bi bi-clock me-1"></i>En attente</span>
+                                {% elif item.justification_status == 'Rejected' %}
+                                    <span class="badge text-danger border border-danger"><i class="bi bi-x-circle me-1"></i>Refusé</span>
+                                {% else %}
+                                    <span class="badge text-danger border border-danger"><i class="bi bi-exclamation-circle me-1"></i>Non justifié</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if item.justification %}
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#justif-modal-{{ item.justification.id }}">
+                                <i class="bi bi-file-earmark-text"></i> View Justification
+                            </button>
+                            {% endif %}
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modal-{{ item.student.id }}">
+                                <i class="bi bi-eye"></i> View Details
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Details Modal moved to bottom -->
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">No students assigned to this group.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Details Modals (Placed at root level to prevent z-index/overlay issues) -->
+{% for item in student_records %}
+<div class="modal fade" id="modal-{{ item.student.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Session Details - {{ item.student.full_name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Date:</strong> {{ attendance_date }}</p>
+                <ul class="list-group">
+                    {% for i in "1234"|make_list %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Session {{ i }}
+                            {% for k, v in item.sessions.items %}
+                                {% if k|stringformat:"s" == i %}
+                                    {% if v == 'Present' %}
+                                        <span class="badge bg-success rounded-pill">Present</span>
+                                    {% elif v == 'Absent' %}
+                                        <span class="badge bg-danger rounded-pill">Absent</span>
+                                    {% elif v == 'Late' %}
+                                        <span class="badge bg-warning text-dark rounded-pill">Late</span>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                            {% if i|add:"0" not in item.sessions.keys %}
+                                <span class="badge bg-secondary rounded-pill">Not Marked</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Justification Verification Modals -->
+{% for item in student_records %}
+    {% if item.justification %}
+    <div class="modal fade" id="justif-modal-{{ item.justification.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-file-earmark-text text-primary me-2"></i>Justification Review
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex justify-content-between mb-4 border-bottom pb-3">
+                        <div>
+                            <p class="text-muted small mb-1">Student</p>
+                            <h6 class="fw-bold">{{ item.student.full_name }}</h6>
+                        </div>
+                        <div class="text-end">
+                            <p class="text-muted small mb-1">Date</p>
+                            <h6 class="fw-bold">{{ attendance_date }}</h6>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="text-muted small mb-1">Affected Sessions</p>
+                        <div class="d-flex gap-2">
+                            {% for s in item.justified_sessions %}
+                                <span class="badge bg-secondary">Session {{ s }}</span>
+                            {% empty %}
+                                <span class="text-muted small">None</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="text-muted small mb-1">Reason provided</p>
+                        <div class="p-3 bg-light rounded border border-light shadow-sm">
+                            <p class="mb-0 fst-italic">"{{ item.justification.reason }}"</p>
+                        </div>
+                    </div>
+                    
+                    {% if item.justification.image %}
+                    <div class="mb-2">
+                        <p class="text-muted small mb-1">Evidence Document</p>
+                        <div class="text-center bg-light p-2 rounded border">
+                            <a href="{{ item.justification.image.url }}" target="_blank" title="Click to open full image">
+                                <img src="{{ item.justification.image.url }}" class="img-fluid rounded" style="max-height: 200px; object-fit: contain; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                            </a>
+                            <div class="small text-muted mt-2"><i class="bi bi-zoom-in me-1"></i>Click to zoom</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer bg-light justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                    
+                    {% if item.justification.status == 'Pending' %}
+                        <div class="d-flex gap-2">
+                            <form action="{% url 'attendance:justification_reject' item.justification.id %}?next={{ request.get_full_path|urlencode }}" method="post" class="m-0">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger rounded-pill px-4 shadow-sm"><i class="bi bi-x-circle me-1"></i>Reject</button>
+                            </form>
+                            <form action="{% url 'attendance:justification_approve' item.justification.id %}?next={{ request.get_full_path|urlencode }}" method="post" class="m-0">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success rounded-pill px-4 shadow-sm"><i class="bi bi-check-circle me-1"></i>Approve</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div>
+                            {% if item.justification.status == 'Approved' %}
+                                <span class="badge bg-success py-2 px-3 fs-6"><i class="bi bi-check-circle me-2"></i>Approved</span>
+                            {% else %}
+                                <span class="badge bg-danger py-2 px-3 fs-6"><i class="bi bi-x-circle me-2"></i>Rejected</span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const rows = document.querySelectorAll('.student-row');
+    
+    filterBtns.forEach(btn => {
+        btn.addEventListener('change', function() {
+            const filterValue = this.getAttribute('data-filter');
+            
+            rows.forEach(row => {
+                if (filterValue === 'all') {
+                    row.style.display = '';
+                } else {
+                    const status = row.getAttribute('data-justif-status');
+                    if (filterValue === 'Rejected' && (status === 'Rejected' || status === 'Non justifié')) {
+                        row.style.display = '';
+                    } else if (status === filterValue) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

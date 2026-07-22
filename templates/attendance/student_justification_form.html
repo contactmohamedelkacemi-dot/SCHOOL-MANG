@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Submit Justification - School Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-lg-8 col-md-10">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1 fw-bold">Submit Absence Justification</h2>
+                <p class="text-muted mb-0">Provide documentation for your absence on <span class="fw-bold">{{ selected_date|default:"the selected date" }}</span>.</p>
+            </div>
+            <a href="{% url 'dashboard:student_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="date" class="form-label fw-bold">Date of Absence</label>
+                        <input type="date" class="form-control" id="date" name="date" value="{{ selected_date }}" required {% if selected_date %}readonly{% endif %}>
+                        <div class="form-text">If you need to justify an absence for a different date, please initiate it from your dashboard.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="alert alert-info border-0 shadow-sm">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            <strong>Note:</strong> This justification will automatically apply to <strong>all sessions</strong> where you were marked "Absent" on the selected date.
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.reason.id_for_label }}" class="form-label fw-bold">Reason for Absence</label>
+                        {{ form.reason }}
+                        {% if form.reason.errors %}
+                            <div class="text-danger small mt-1">{{ form.reason.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.image.id_for_label }}" class="form-label fw-bold">Evidence (Photo / Document)</label>
+                        {{ form.image }}
+                        <div class="form-text">Upload a clear photo of your medical certificate or valid document. Supported formats: JPG, PNG.</div>
+                        {% if form.image.errors %}
+                            <div class="text-danger small mt-1">{{ form.image.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-send-fill me-2"></i>Submit Justification
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

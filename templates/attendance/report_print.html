@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Report PDF</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            color: #333;
+            font-size: 12px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #2c3e50;
+        }
+        .header p {
+            margin: 5px 0 0;
+            color: #7f8c8d;
+        }
+        .filters-summary {
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .text-center { text-align: center; }
+        .status-present { color: #198754; font-weight: bold; }
+        .status-absent { color: #dc3545; font-weight: bold; }
+        .status-late { color: #fd7e14; font-weight: bold; }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 10px;
+            color: #7f8c8d;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        @media print {
+            body { margin: 0; }
+            @page { margin: 1cm; size: A4 portrait; }
+            button { display: none; }
+        }
+        .print-btn {
+            display: block;
+            margin: 0 auto 30px;
+            padding: 10px 20px;
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .print-btn:hover { background-color: #0b5ed7; }
+    </style>
+</head>
+<body>
+
+    <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+
+    <div class="header">
+        <h1>Official Attendance Report</h1>
+        <p>Generated on {% now "F j, Y, g:i a" %}</p>
+    </div>
+
+    <div class="filters-summary">
+        Filters applied: 
+        {% if start_date %} From: {{ start_date }} {% endif %}
+        {% if end_date %} To: {{ end_date }} {% endif %}
+        {% if not start_date and not end_date %} All Dates {% endif %}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Student</th>
+                <th>Group</th>
+                <th class="text-center">S1</th>
+                <th class="text-center">S2</th>
+                <th class="text-center">S3</th>
+                <th class="text-center">S4</th>
+                <th class="text-center">Daily Status</th>
+                <th class="text-center">Justification</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in report_data %}
+            <tr>
+                <td>{{ record.date|date:"Y-m-d" }}</td>
+                <td>{{ record.student.full_name }}</td>
+                <td>{{ record.group.name }}</td>
+                
+                {% for i in "1234"|make_list %}
+                    <td class="text-center">
+                        {% for k, v in record.sessions.items %}
+                            {% if k|stringformat:"s" == i %}
+                                {% if v == 'Present' %}<span class="status-present">P</span>{% endif %}
+                                {% if v == 'Absent' %}<span class="status-absent">A</span>{% endif %}
+                                {% if v == 'Late' %}<span class="status-late">L</span>{% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if i|add:"0" not in record.sessions.keys %} - {% endif %}
+                    </td>
+                {% endfor %}
+
+                <td class="text-center">
+                    {% if record.daily_status == 'Present' %}<span class="status-present">Present</span>{% endif %}
+                    {% if record.daily_status == 'Absent' %}<span class="status-absent">Absent</span>{% endif %}
+                    {% if record.daily_status == 'Late' %}<span class="status-late">Late</span>{% endif %}
+                    {% if not record.daily_status %} - {% endif %}
+                </td>
+
+                <td class="text-center">
+                    {% if record.daily_status == 'Absent' %}
+                        {% if record.justification_status == 'Approved' %} Justifié
+                        {% elif record.justification_status == 'Pending' %} En attente
+                        {% elif record.justification_status == 'Rejected' %} Rejeté
+                        {% else %} Non justifié {% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="text-center">No attendance records found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        School Management System &bull; Confidential Document
+    </div>
+
+</body>
+</html>
